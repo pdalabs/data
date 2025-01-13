@@ -1,3 +1,0 @@
-Theory:-
-
-The term multiplexer means "many-to-one". A multiplexer (MUX) has an input each line is used to shift digit data serially. There is a single output line one of the data stored in the n input line is transferred to the output based on the value of control bits on n to 1 multiplexer requires 'n' control bits where n<=2m. To construct a 4 variable function we required a 16(2⁴) to 1 multiplexer, where as using an entered variable map method a 4 variable expression can be realised using 8(2³) to 1 multiplexer.
