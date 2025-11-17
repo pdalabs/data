@@ -1,0 +1,8 @@
+Dataset 
+outlook,temperature,humidity,wind,playTennis 
+sunny,  hot,high, weak , no
+sunny,  hot,high, weak , no
+overcast ,hot, high, weak,yes
+rain,mild,high,weak,yes
+rain,cold,high,weak,yes
+rain,mild,normal,strong,yes
