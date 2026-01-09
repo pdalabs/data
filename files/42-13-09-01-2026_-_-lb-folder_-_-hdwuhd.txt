@@ -1,0 +1,330 @@
+SEVEN 
+#include <stdio.h>
+#include <stdlib.h>
+
+struct node {
+    int data;
+    struct node *link;
+};
+
+
+struct node *first = NULL, *head, *ptr, *temp, *temp1;
+
+void create() {
+    if (first != NULL) {
+        printf("\nLinkedList already created.");
+        return;
+    }
+
+    head = (struct node*)malloc(sizeof(struct node));
+    printf("\nEnter value for head node : ");
+    scanf("%d", &head->data);
+
+    head->link = NULL;
+    first = head;
+}
+void insert_beg() {
+    ptr = (struct node*)malloc(sizeof(struct node));
+    printf("\nEnter the data for the new node : ");
+    scanf("%d", &ptr->data);
+    ptr->link = first;
+    first = ptr;
+}
+void insert_end() {
+    temp = (struct node*)malloc(sizeof(struct node));
+    printf("\nEnter the data for the new node : ");
+    scanf("%d", &temp->data);
+    temp->link = NULL;
+    if (first == NULL) {
+        first = temp;
+        return;
+    }
+    ptr = first;
+    while (ptr->link != NULL) {
+        ptr = ptr->link;
+    }
+    ptr->link = temp;
+}
+void del_beg() {
+    if (first == NULL) {
+        printf("\nLinked List is already empty.");        
+    }
+    else {
+        temp = first;
+        first = first->link;
+        free(temp);
+    }
+}
+void del_end() {
+    if (first == NULL) {
+        printf("\nLinked List is already empty.");
+    }
+    else if (first->link == NULL) {
+        free(first);
+        first = NULL;
+    }
+    else {
+        temp = first;
+        temp1 = first;
+        while (temp->link != NULL) {
+            temp1 = temp;
+            temp = temp->link;
+        }
+        temp1->link = NULL;
+        free(temp);
+        temp = NULL;
+    }
+}
+void display() {
+    if (first == NULL) {
+        printf("\nThe Linked List is already empty.");
+        return;
+    }
+    head = first;
+    printf("\nThe Linked List is  : ");
+    while (head != NULL) {
+        printf("%d \t", head->data);
+        head = head->link;
+    }  
+}
+
+int main()
+{
+    int ch;
+
+    printf("\n\n Singly linked lidt");
+    printf("\n\n 1.CREATE");
+        printf("\n 2.INSERT BEGINING NODE");
+        printf("\n 3.INSERT ENDING NODE");
+        printf("\n 4.DELETE BEGINING NODE");
+        printf("\n 5.DELETE END NODE");
+        printf("\n 6.EXIT");
+    while (1)
+    {
+        printf("\n\n Enter your choice:");
+        scanf("%d", &ch);
+
+        switch (ch)
+        {
+            case 1:
+                create();
+                display();
+                break;
+
+            case 2:
+                insert_beg();
+                display();
+                break;
+
+            case 3:
+                insert_end();
+                display();
+                break;
+
+            case 4:
+                del_beg();
+                display();
+                break;
+
+            case 5:
+                del_end();
+                display();
+                break;
+
+            case 6:
+                exit(0);
+
+            default:
+                printf("Invalid choice...");
+        }
+    }
+}
+
+
+
+
+
+EIGHT
+#include <stdio.h>
+#include <stdlib.h>
+
+struct node {
+    int value;
+    struct node *next;
+};
+
+int main() {
+
+    int item, n;
+    struct node *head;
+    struct node *temp;
+    struct node *tail;
+    struct node *prev;
+    struct node *curr;
+    struct node *next;
+
+    temp = (struct node*)malloc(sizeof(struct node));
+    head = temp;
+
+    printf("\nEnter the size of the linked list : ");
+    scanf("%d", &n);
+
+    printf("\nEnter the linked list to be reversed : ");
+    temp = (struct node*)malloc(sizeof(struct node));
+    scanf("%d", &item);
+    temp->value = item;
+    head = temp;
+    n--;
+    while (n != 0) {
+        temp->next = (struct node*)malloc(sizeof(struct node));
+        temp = temp->next;
+        scanf("%d", &item);
+        temp->value = item;
+        --n;
+    }
+    temp->next = NULL;
+    tail = temp;
+    temp = head;
+
+    printf("\nReversing the Linked List.");
+    prev = NULL;
+    curr = next = head;
+    while ( curr) {
+        next = curr->next;
+        curr->next = prev;
+        prev = curr;
+        curr = next;
+    }
+    temp = tail;
+    while (temp) {
+        printf("%d\t", temp->value);
+        temp = temp->next;
+    }
+    return 0;
+}
+
+
+
+NINE 
+// 9. Pqueue
+#include <stdio.h>
+#include <malloc.h>
+#include <stdlib.h>
+
+typedef struct node
+{
+    int priority;
+    int info;
+    struct node *link;
+} NODE;
+
+NODE *front = NULL;
+
+void insert(int item, int priority)
+{
+    NODE *tmp, *q;
+
+    tmp = (NODE *)malloc(sizeof(NODE));
+    tmp->info = item;
+    tmp->priority = priority;
+
+    if (front == NULL || priority < front->priority)
+    {
+        tmp->link = front;
+        front = tmp;
+    }
+    else
+    {
+        q = front;
+
+        while (q->link != NULL && q->link->priority <= priority)
+        {
+            q = q->link;
+        }
+
+        tmp->link = q->link;
+        q->link = tmp;
+    }
+}
+
+void del()
+{
+    NODE *tmp;
+
+    if (front == NULL)
+    {
+        printf("Queue Underflow\n");
+    }
+    else
+    {
+        tmp = front;
+        printf("Deleted item is %d\n", tmp->info);
+        front = front->link;
+        free(tmp);
+    }
+}
+
+void display()
+{
+    NODE *ptr;
+    ptr = front;
+
+    if (front == NULL)
+    {
+        printf("Queue is empty\n");
+    }
+    else
+    {
+        printf("Queue is :\n");
+        printf("priority Item\n");
+
+        while (ptr != NULL)
+        {
+            printf("%5d%5d\n", ptr->priority, ptr->info);
+            ptr = ptr->link;
+        }
+    }
+}
+
+int main()
+{
+    int choice, item, priority;
+
+    do
+    {
+        printf("1.Insert\n");
+        printf("2.Delete\n");
+        printf("3.Display\n");
+        printf("4.Quit\n");
+        printf("Enter your choice:");
+        scanf("%d", &choice);
+
+        switch (choice)
+        {
+            case 1:
+                printf("Input the item value to be added in the queue:");
+                scanf("%d", &item);
+                printf("Enter its priority:");
+                scanf("%d", &priority);
+                insert(item, priority);
+                break;
+
+            case 2:
+                del();
+                break;
+
+            case 3:
+                display();
+                break;
+
+            case 4:
+                exit(0);
+
+            default:
+                printf("Wrong choice\n");
+        }
+    }
+    while (choice != 4);
+
+    return 0;
+}
