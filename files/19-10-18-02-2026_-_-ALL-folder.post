@@ -1,0 +1,109 @@
+import cv2
+import numpy as np
+
+# -----------------------------------
+# 1. Read and Display an Image
+# -----------------------------------
+
+img = cv2.imread("image.jpg")   # Replace with your image path
+
+if img is None:
+    print("Image not found!")
+    exit()
+
+cv2.imshow("Original Image", img)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+# -----------------------------------
+# 2. Resize Image
+# -----------------------------------
+
+resized = cv2.resize(img, (400, 300))
+cv2.imshow("Resized", resized)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+# -----------------------------------
+# 3. Convert to Grayscale
+# -----------------------------------
+
+gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+cv2.imshow("Grayscale", gray)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+# -----------------------------------
+# 4. Blur Image
+# -----------------------------------
+
+blur = cv2.GaussianBlur(gray, (7, 7), 0)
+cv2.imshow("Blurred", blur)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+# -----------------------------------
+# 5. Edge Detection
+# -----------------------------------
+
+edges = cv2.Canny(blur, 50, 150)
+cv2.imshow("Edges", edges)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+# -----------------------------------
+# 6. Draw Shapes
+# -----------------------------------
+
+canvas = img.copy()
+
+# Line
+cv2.line(canvas, (50, 50), (200, 50), (0, 255, 0), 2)
+
+# Rectangle
+cv2.rectangle(canvas, (50, 100), (200, 200), (255, 0, 0), 2)
+
+# Circle
+cv2.circle(canvas, (300, 150), 40, (0, 0, 255), -1)
+
+cv2.imshow("Drawing", canvas)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+# -----------------------------------
+# 7. Put Text
+# -----------------------------------
+
+text_img = img.copy()
+cv2.putText(text_img, "Hello OpenCV!",
+            (50, 50),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            1,
+            (0, 255, 255),
+            2)
+
+cv2.imshow("Text", text_img)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+# -----------------------------------
+# 8. Webcam Capture (press Q to quit)
+# -----------------------------------
+
+cap = cv2.VideoCapture(0)
+
+while True:
+    ret, frame = cap.read()
+    if not ret:
+        break
+
+    gray_cam = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+    cv2.imshow("Webcam", frame)
+    cv2.imshow("Webcam Gray", gray_cam)
+
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+cap.release()
+cv2.destroyAllWindows()
