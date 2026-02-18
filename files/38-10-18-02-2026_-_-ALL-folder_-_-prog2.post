@@ -1,0 +1,26 @@
+import cv2
+import numpy as np
+image1 = cv2.imread('C:/Users/cse/Desktop/082/image1.jfif')
+image2 = cv2.imread('C:/Users/cse/Desktop/082/image2.jfif')
+
+cv2.imshow('image1',image1)
+cv2.imshow('image2',image2)
+
+image2=cv2.resize(image2,(image1.shape[1],image1.shape[0]))
+
+dest_and = cv2.bitwise_and(image2,image1,mask=None)
+cv2.imshow('bitwise and',dest_and)
+
+dest_or = cv2.bitwise_or(image2,image1,mask=None)
+cv2.imshow('bitwise or',dest_or)
+
+dest_xor= cv2.bitwise_xor(image2,image1,mask=None)
+cv2.imshow('bitwise and',dest_xor)
+
+dest_not= cv2.bitwise_not(image2,mask=None)
+cv2.imshow('bitwise not',dest_not)
+
+
+
+
+
