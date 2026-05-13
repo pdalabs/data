@@ -1,0 +1,47 @@
+Here are the answers to all 45 questions:
+
+3 - Elastic Load Balance
+2 - EC2 Hibernation
+1 - Using Reserved Instances
+3 - To provide a static IP address for dynamic resources
+3 - Allow inbound traffic on port 80
+2 - Amazon EBS
+1 - S3 Glacier (Flexible Retrieval)
+3 - Amazon S3
+3 - EFS is for file storage, S3 is for object storage
+2 - Auto Scaling Groups
+2 - To automate data transfer between storage classes
+2 - EBS volumes can be detached and reattached
+4 - Amazon EBS
+b - To monitor AWS resources and applications in real-time
+1 - AWS is responsible for security of the cloud, customers are responsible for security in the cloud
+2 - Multipart Upload
+2 - C5 Instances
+2 - It uses machine learning to forecast future demand
+4 - Amazon EFS
+3 - The ability to scale resources up or down as needed
+2 - Low-cost storage for long-term data
+3 - To manage domain names and route traffic
+2 - Amazon EC2
+1 - Amazon CloudWatch
+2 - The ability to recover from failures
+2 - Instance Store
+2 - EFS
+3 - AWS WAF
+Region → Geographically distinct location hosting multiple data centers | Availability Zone → Isolated location within a geographic area | Edge Location → Used by CloudFront for content delivery
+3 - 5 TB
+2 - A Region contains multiple isolated Availability Zones
+3 - Spot Instances
+4 - R family
+3 - They are saved to the root EBS volume
+2 - Encrypted EBS root volume
+2 - Use an Amazon Machine Image (AMI) to launch identical EC2 instances quickly
+1 - Average CPU utilization across EC2 instances monitored by Amazon CloudWatch
+2 - OS, application server, and configurations
+2 - Predictive Scaling
+3 - NLB
+3 - S3 Glacier Deep Archive
+2 - Use IAM Roles with AWS IAM Identity Center (SSO)
+3 - Spot Instances
+2 - Amazon EBS
+3 - Reserved Instances
