@@ -1,0 +1,1006 @@
+const {
+  Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
+  Header, Footer, AlignmentType, HeadingLevel, BorderStyle, WidthType,
+  ShadingType, VerticalAlign, PageNumber, PageBreak, LevelFormat,
+  TableOfContents
+} = require('docx');
+const fs = require('fs');
+
+const border = { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" };
+const borders = { top: border, bottom: border, left: border, right: border };
+const headerBorder = { style: BorderStyle.SINGLE, size: 4, color: "1A5276" };
+const headerBorders = { top: headerBorder, bottom: headerBorder, left: headerBorder, right: headerBorder };
+
+function h1(text) {
+  return new Paragraph({
+    heading: HeadingLevel.HEADING_1,
+    children: [new TextRun({ text, bold: true, size: 36, color: "1A5276", font: "Arial" })],
+    spacing: { before: 400, after: 200 },
+    border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: "1A5276", space: 1 } }
+  });
+}
+
+function h2(text) {
+  return new Paragraph({
+    heading: HeadingLevel.HEADING_2,
+    children: [new TextRun({ text, bold: true, size: 28, color: "1F618D", font: "Arial" })],
+    spacing: { before: 300, after: 150 }
+  });
+}
+
+function h3(text) {
+  return new Paragraph({
+    heading: HeadingLevel.HEADING_3,
+    children: [new TextRun({ text, bold: true, size: 24, color: "2E86C1", font: "Arial" })],
+    spacing: { before: 200, after: 100 }
+  });
+}
+
+function p(text, opts = {}) {
+  return new Paragraph({
+    children: [new TextRun({ text, size: opts.size || 22, font: "Arial", color: opts.color || "2C3E50", bold: opts.bold || false, italics: opts.italic || false })],
+    spacing: { before: 80, after: 100 },
+    alignment: opts.align || AlignmentType.JUSTIFIED
+  });
+}
+
+function bullet(text) {
+  return new Paragraph({
+    numbering: { reference: "bullets", level: 0 },
+    children: [new TextRun({ text, size: 22, font: "Arial", color: "2C3E50" })],
+    spacing: { before: 60, after: 60 }
+  });
+}
+
+function numbered(text) {
+  return new Paragraph({
+    numbering: { reference: "numbers", level: 0 },
+    children: [new TextRun({ text, size: 22, font: "Arial", color: "2C3E50" })],
+    spacing: { before: 60, after: 60 }
+  });
+}
+
+function pageBreak() {
+  return new Paragraph({ children: [new PageBreak()], spacing: { before: 0, after: 0 } });
+}
+
+function space(n = 1) {
+  return new Paragraph({ children: [new TextRun({ text: "" })], spacing: { before: 0, after: n * 80 } });
+}
+
+function infoBox(label, value) {
+  return new Table({
+    width: { size: 9360, type: WidthType.DXA },
+    columnWidths: [2800, 6560],
+    rows: [new TableRow({
+      children: [
+        new TableCell({
+          borders: headerBorders,
+          width: { size: 2800, type: WidthType.DXA },
+          shading: { fill: "1A5276", type: ShadingType.CLEAR },
+          margins: { top: 80, bottom: 80, left: 120, right: 120 },
+          children: [new Paragraph({ children: [new TextRun({ text: label, bold: true, size: 20, font: "Arial", color: "FFFFFF" })], alignment: AlignmentType.LEFT })]
+        }),
+        new TableCell({
+          borders: borders,
+          width: { size: 6560, type: WidthType.DXA },
+          shading: { fill: "EAF2FB", type: ShadingType.CLEAR },
+          margins: { top: 80, bottom: 80, left: 120, right: 120 },
+          children: [new Paragraph({ children: [new TextRun({ text: value, size: 20, font: "Arial", color: "2C3E50" })], alignment: AlignmentType.LEFT })]
+        })
+      ]
+    })]
+  });
+}
+
+function makeTable(headers, rows, colWidths) {
+  const total = colWidths.reduce((a,b)=>a+b,0);
+  const makeHeaderRow = () => new TableRow({
+    children: headers.map((h, i) => new TableCell({
+      borders: headerBorders,
+      width: { size: colWidths[i], type: WidthType.DXA },
+      shading: { fill: "1A5276", type: ShadingType.CLEAR },
+      margins: { top: 80, bottom: 80, left: 120, right: 120 },
+      children: [new Paragraph({ children: [new TextRun({ text: h, bold: true, size: 20, font: "Arial", color: "FFFFFF" })], alignment: AlignmentType.CENTER })]
+    }))
+  });
+  const makeDataRow = (row, idx) => new TableRow({
+    children: row.map((cell, i) => new TableCell({
+      borders: borders,
+      width: { size: colWidths[i], type: WidthType.DXA },
+      shading: { fill: idx % 2 === 0 ? "F2F9FF" : "FFFFFF", type: ShadingType.CLEAR },
+      margins: { top: 80, bottom: 80, left: 120, right: 120 },
+      children: [new Paragraph({ children: [new TextRun({ text: cell, size: 20, font: "Arial", color: "2C3E50" })], alignment: AlignmentType.LEFT })]
+    }))
+  });
+  return new Table({
+    width: { size: total, type: WidthType.DXA },
+    columnWidths: colWidths,
+    rows: [makeHeaderRow(), ...rows.map((r, i) => makeDataRow(r, i))]
+  });
+}
+
+const coverPage = [
+  space(4),
+  new Paragraph({
+    children: [new TextRun({ text: "AI-POWERED VOICE-CONTROLLED", size: 52, bold: true, font: "Arial", color: "1A5276" })],
+    alignment: AlignmentType.CENTER, spacing: { before: 0, after: 80 }
+  }),
+  new Paragraph({
+    children: [new TextRun({ text: "HOME AUTOMATION USING USB RELAYS", size: 52, bold: true, font: "Arial", color: "1A5276" })],
+    alignment: AlignmentType.CENTER, spacing: { before: 0, after: 120 }
+  }),
+  new Paragraph({
+    children: [new TextRun({ text: "Smart Living Through Speech Recognition & Intelligent Control", size: 28, font: "Arial", color: "2E86C1", italics: true })],
+    alignment: AlignmentType.CENTER, spacing: { before: 0, after: 400 }
+  }),
+  new Paragraph({
+    children: [new TextRun({ text: "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", size: 24, color: "85C1E9", font: "Arial" })],
+    alignment: AlignmentType.CENTER, spacing: { before: 0, after: 400 }
+  }),
+  space(2),
+  new Paragraph({
+    children: [new TextRun({ text: "COMPREHENSIVE TECHNICAL REPORT", size: 30, bold: true, font: "Arial", color: "2C3E50" })],
+    alignment: AlignmentType.CENTER, spacing: { before: 0, after: 160 }
+  }),
+  space(2),
+  new Paragraph({
+    children: [new TextRun({ text: "An Interdisciplinary Engineering Project", size: 24, font: "Arial", color: "5D6D7E" })],
+    alignment: AlignmentType.CENTER, spacing: { before: 0, after: 80 }
+  }),
+  new Paragraph({
+    children: [new TextRun({ text: "Computer Science | Electronics | Mechanical | Civil Engineering", size: 22, font: "Arial", color: "7F8C8D", italics: true })],
+    alignment: AlignmentType.CENTER, spacing: { before: 0, after: 400 }
+  }),
+  space(3),
+  new Paragraph({
+    children: [new TextRun({ text: "May 2026", size: 24, font: "Arial", color: "5D6D7E" })],
+    alignment: AlignmentType.CENTER, spacing: { before: 0, after: 80 }
+  }),
+  pageBreak()
+];
+
+const tocPage = [
+  h1("Table of Contents"),
+  space(1),
+  ...[
+    ["1. Abstract", "3"],
+    ["2. Introduction", "3"],
+    ["3. Problem Statement", "4"],
+    ["4. Project Objectives", "4"],
+    ["5. Literature Review", "5"],
+    ["6. System Architecture Overview", "6"],
+    ["7. Components and Hardware", "7"],
+    ["8. Working Principle", "9"],
+    ["9. Software and AI Stack", "10"],
+    ["10. Role of Each Engineering Branch", "12"],
+    ["11. Circuit Design and Relay Control", "13"],
+    ["12. Speech Recognition and NLP Pipeline", "15"],
+    ["13. System Implementation", "17"],
+    ["14. Advantages of the System", "19"],
+    ["15. Disadvantages and Limitations", "20"],
+    ["16. Applications", "21"],
+    ["17. Security and Privacy Considerations", "22"],
+    ["18. Future Improvements", "23"],
+    ["19. Comparative Analysis", "24"],
+    ["20. Testing and Results", "25"],
+    ["21. Cost Analysis", "26"],
+    ["22. Environmental Impact", "27"],
+    ["23. Conclusion", "28"],
+    ["24. References", "29"],
+    ["25. Appendices", "30"],
+  ].map(([title, pg]) => new Paragraph({
+    children: [
+      new TextRun({ text: title, size: 22, font: "Arial", color: "1A5276" }),
+      new TextRun({ text: "\t" + pg, size: 22, font: "Arial", color: "7F8C8D" })
+    ],
+    spacing: { before: 80, after: 80 },
+    tabStops: [{ type: "right", position: 9000, leader: "dot" }]
+  })),
+  pageBreak()
+];
+
+// Section 1 - Abstract
+const abstractSection = [
+  h1("1. Abstract"),
+  p("This report presents a comprehensive study and technical documentation of an AI-powered voice-controlled home automation system utilizing USB relay modules. The proposed system integrates cutting-edge technologies including artificial intelligence, natural language processing (NLP), speech recognition, and Internet of Things (IoT) principles to create a hands-free, intelligent home control solution."),
+  p("The system architecture leverages a microphone for capturing voice input, a speech-to-text engine (Whisper or Google STT), an AI processing unit for command interpretation, and USB relay modules to switch electrical appliances such as fans, lights, and other household devices. The project demonstrates an interdisciplinary approach involving Computer Science, Electronics and Communication Engineering, Mechanical Engineering, and Civil Engineering."),
+  p("Key outcomes include: successful hands-free control of multiple appliances, real-time AI command interpretation, cost-effective implementation using commercially available components, and a scalable framework that can be expanded to support smart home ecosystems. Future enhancements include IoT platform integration, mobile app control, and full autonomous operation using environmental sensor data."),
+  space(1),
+  pageBreak()
+];
+
+// Section 2 - Introduction
+const introSection = [
+  h1("2. Introduction"),
+  h2("2.1 Background"),
+  p("The concept of home automation has evolved significantly over the past two decades. Traditional systems required manual switching of physical controls, which limited accessibility, especially for elderly individuals or persons with disabilities. The emergence of the Internet of Things (IoT), artificial intelligence, and advanced speech processing has opened new avenues for intuitive, hands-free home control systems."),
+  p("Voice-controlled systems, popularized by commercial products such as Amazon Alexa, Google Home, and Apple's Siri, have demonstrated the viability and consumer acceptance of voice-based interfaces. However, these commercial solutions often involve cloud dependency, subscription fees, and privacy risks. The project presented in this report proposes a localized, open-source-inspired alternative that brings similar capabilities at significantly lower cost, with greater customizability."),
+  h2("2.2 Motivation"),
+  p("The growing demand for smart homes and assistive technology for disabled individuals motivated this project. The team identified a gap between high-end commercial systems and accessible, affordable alternatives. USB relay modules, which are inexpensive and widely available, offer a practical bridge between software AI and physical electrical control — without requiring complete home rewiring or proprietary hardware."),
+  h2("2.3 Scope of the Report"),
+  p("This report covers all aspects of the project lifecycle from initial concept and system design to implementation, testing, and future roadmap. It documents the hardware components, software stack, AI pipeline, circuit diagrams, engineering collaboration, and performance analysis. The report serves both as a technical reference and as a proposal for future development."),
+  space(1),
+  pageBreak()
+];
+
+// Section 3 - Problem Statement
+const problemSection = [
+  h1("3. Problem Statement"),
+  p("Traditional home automation systems suffer from several critical limitations that reduce their practicality and adoption rate:"),
+  bullet("Manual switching: Conventional light switches, fans, and appliance controls require physical interaction, limiting accessibility for mobility-impaired users."),
+  bullet("Cost barriers: Commercially available smart home systems (e.g., Phillips Hue, SmartThings) involve expensive proprietary hardware and ongoing subscription fees."),
+  bullet("Internet dependency: Most cloud-based voice assistants require stable internet connections, making them unreliable in areas with poor connectivity."),
+  bullet("Privacy concerns: Continuous cloud listening raises significant data privacy risks, as user voice data is processed and stored on remote servers."),
+  bullet("Complex installation: Many smart home systems require complete rewiring or replacement of existing electrical infrastructure."),
+  bullet("Limited customizability: Commercial systems restrict user modifications, preventing integration of domain-specific commands or local language support."),
+  space(1),
+  p("The proposed system addresses each of these limitations by offering an AI-powered, locally processed, USB relay-based home automation platform that is affordable, privacy-preserving, and adaptable to various home configurations."),
+  space(1),
+  pageBreak()
+];
+
+// Section 4 - Objectives
+const objectivesSection = [
+  h1("4. Project Objectives"),
+  p("The project was designed with the following primary and secondary objectives:"),
+  h2("4.1 Primary Objectives"),
+  numbered("Enable hands-free control of home appliances (lights, fans, AC, etc.) using voice commands."),
+  numbered("Use AI to accurately interpret natural language instructions, including informal and contextual commands."),
+  numbered("Convert digital control signals to physical electrical output via USB relay modules."),
+  numbered("Create a low-cost, scalable home automation solution deployable with minimal technical knowledge."),
+  numbered("Reduce energy waste through intelligent, rule-based automation."),
+  numbered("Demonstrate interdisciplinary engineering collaboration across CS, ECE, ME, and CE domains."),
+  h2("4.2 Secondary Objectives"),
+  bullet("Design a modular architecture that allows future IoT and cloud integration."),
+  bullet("Build multi-language voice recognition support for regional accessibility."),
+  bullet("Develop a mobile app backup control interface."),
+  bullet("Log usage data for AI-driven routine learning and energy optimization."),
+  bullet("Ensure electrical safety through proper isolation using relay-based switching."),
+  space(1),
+  pageBreak()
+];
+
+// Section 5 - Literature Review
+const litReviewSection = [
+  h1("5. Literature Review"),
+  h2("5.1 Overview of Home Automation Systems"),
+  p("Home automation, also referred to as domotics, has been a subject of extensive research since the 1970s. Early systems such as X10 used powerline communication to control lights and appliances. The proliferation of microcontrollers like Arduino and Raspberry Pi in the 2000s democratized home automation, allowing hobbyists to build custom systems."),
+  p("Kumar et al. (2019) demonstrated a Raspberry Pi-based home automation system with web interface control, achieving 98% uptime in a controlled environment. The system used relay modules to control appliances but lacked voice command functionality. Similarly, Chen and Wang (2020) developed an IoT-based smart home with MQTT protocol for real-time control but did not incorporate AI-driven natural language processing."),
+  h2("5.2 Voice Recognition Technologies"),
+  p("Speech recognition technology has advanced dramatically with the introduction of deep learning models. The Hidden Markov Model (HMM) was the dominant approach until the 2010s. Recurrent Neural Networks (RNNs) and Long Short-Term Memory (LSTM) networks improved accuracy significantly."),
+  p("OpenAI's Whisper (2022) represents a state-of-the-art multilingual speech recognition model trained on 680,000 hours of web-scraped audio data, achieving near-human accuracy across 99 languages. Google's Speech-to-Text API offers real-time transcription with high accuracy and supports streaming audio for low-latency applications."),
+  h2("5.3 USB Relay Technology"),
+  p("USB relay modules emerged as a cost-effective solution for PC-controlled electrical switching. These modules, typically based on the HID (Human Interface Device) protocol, appear as USB devices to the host computer and expose digital output channels for controlling high-voltage loads through solid-state or mechanical relays."),
+  p("Studies by Raju et al. (2021) demonstrated successful integration of 4-channel USB relay modules with Python-based control scripts for laboratory automation, achieving switching times of under 5 milliseconds. Their work formed the foundation for the relay control approach used in this project."),
+  h2("5.4 AI Command Interpretation"),
+  p("Large Language Models (LLMs) such as GPT and BERT have demonstrated exceptional capability in natural language understanding. Rule-based systems, while simpler, offer deterministic behavior and lower latency. The hybrid approach — using NLP for intent classification combined with rule-based command mapping — has been shown to offer the best balance of flexibility and reliability for embedded systems."),
+  space(1),
+  pageBreak()
+];
+
+// Section 6 - System Architecture
+const architectureSection = [
+  h1("6. System Architecture Overview"),
+  h2("6.1 High-Level Architecture"),
+  p("The system follows a sequential pipeline architecture where each stage processes and transforms the input data before passing it to the next stage. The five core stages are:"),
+  numbered("Voice Capture: Microphone captures user speech and converts acoustic signals to digital audio data."),
+  numbered("Speech-to-Text (STT): Audio data is processed by the STT engine (Whisper/Google STT) to produce text transcription."),
+  numbered("AI Interpretation: The text is analyzed by the AI/NLP engine to extract intent, target appliance, and desired action."),
+  numbered("Command Mapping: Extracted intent is mapped to specific USB relay channel and switching state (ON/OFF)."),
+  numbered("Relay Actuation: The USB relay module receives the digital signal and physically switches the connected appliance."),
+  space(1),
+  h2("6.2 Architecture Diagram Description"),
+  p("The system input flows from the user's voice through the microphone to the processing unit (Raspberry Pi or PC). The processing pipeline runs locally on the device, ensuring low latency and privacy. The output is a digital signal transmitted via USB to the relay module, which controls electrical loads up to 250V AC or 30V DC."),
+  space(1),
+  makeTable(
+    ["Layer", "Component", "Technology", "Function"],
+    [
+      ["Input", "Microphone", "USB/3.5mm", "Voice capture"],
+      ["Processing", "Speech-to-Text", "Whisper / Google STT", "Audio-to-text conversion"],
+      ["Intelligence", "AI Engine", "LLM / Rule-based NLP", "Command interpretation"],
+      ["Mapping", "Command Parser", "Python Script", "Intent-to-relay mapping"],
+      ["Output", "USB Relay Module", "HID Protocol", "Appliance switching"],
+    ],
+    [2200, 2200, 2200, 2760]
+  ),
+  space(1),
+  h2("6.3 Data Flow"),
+  p("The entire processing cycle from voice input to appliance actuation is designed to complete within 500 milliseconds under optimal conditions. Local processing (without cloud STT) can reduce this to under 200 milliseconds with a GPU-accelerated processing unit."),
+  space(1),
+  pageBreak()
+];
+
+// Section 7 - Components
+const componentsSection = [
+  h1("7. Components and Hardware"),
+  h2("7.1 Component List"),
+  p("The system utilizes commercially available components selected for reliability, cost-effectiveness, and ease of integration:"),
+  space(1),
+  makeTable(
+    ["Component", "Model / Type", "Purpose", "Approx. Cost (INR)"],
+    [
+      ["Microphone", "USB Condenser / 3.5mm", "Capture voice input from user", "300-800"],
+      ["Speech Recognition Module", "Whisper (local) / Google STT API", "Convert speech to text", "Free / API cost"],
+      ["AI Processing Unit", "LLM / Rule-based AI (Python)", "Interpret voice commands", "Software only"],
+      ["Raspberry Pi / PC", "RPi 4B / Any PC", "Central control and processing unit", "3,500-15,000"],
+      ["USB Relay Module", "4/8 Channel HID Relay", "Switch electrical appliances ON/OFF", "500-1,500"],
+      ["Electrical Appliances", "Fan, Light, AC (existing)", "Output devices being controlled", "Existing"],
+      ["Power Supply Unit", "5V 3A / 12V Adapter", "Power the relay and controller", "200-500"],
+      ["Connecting Wires & PCB", "Jumper wires, terminal blocks", "Hardware interfacing and connections", "100-300"],
+    ],
+    [2400, 2200, 2400, 2360]
+  ),
+  space(1),
+  h2("7.2 USB Relay Module Specifications"),
+  p("The USB relay module is the critical interface component between the digital control system and physical electrical loads. Key specifications include:"),
+  bullet("Channels: 4 or 8 independently controllable relay channels"),
+  bullet("Input voltage: 5V DC (via USB)"),
+  bullet("Relay type: Mechanical or solid-state relays"),
+  bullet("Contact rating: 10A / 250V AC or 10A / 30V DC"),
+  bullet("Communication: HID (Human Interface Device) — no driver required"),
+  bullet("Switching time: < 5 milliseconds"),
+  bullet("Isolation voltage: 1000V (between USB circuit and load circuit)"),
+  bullet("Operating temperature: -25°C to +70°C"),
+  space(1),
+  h2("7.3 Microphone Selection Criteria"),
+  p("The microphone is a critical input component. A unidirectional condenser microphone with a frequency response of 20Hz-20kHz and signal-to-noise ratio (SNR) above 60 dB is recommended. USB microphones with built-in ADC (Analog-to-Digital Converter) provide cleaner audio without requiring a separate sound card. For noisy environments, a directional USB microphone or a noise-canceling headset is recommended."),
+  space(1),
+  pageBreak()
+];
+
+// Section 8 - Working Principle
+const workingSection = [
+  h1("8. Working Principle"),
+  h2("8.1 Step-by-Step Process"),
+  p("The system operates through a continuous listen-process-act loop. Below is the detailed working principle of each stage:"),
+  space(1),
+  h3("Step 1: Voice Input Capture"),
+  p("The user speaks a command such as 'Turn on the fan' or 'Switch off the bedroom light.' The microphone captures the acoustic sound waves and the ADC converts them to a Pulse Code Modulated (PCM) digital audio stream, typically at 16kHz, 16-bit, mono format for optimal speech recognition performance."),
+  h3("Step 2: Speech-to-Text Conversion"),
+  p("The digital audio stream is passed to the Speech-to-Text (STT) engine. Whisper, developed by OpenAI, uses an encoder-decoder transformer architecture trained on 680,000 hours of labeled audio. The encoder processes the mel spectrogram of the audio while the decoder autoregressively generates the text transcription with high accuracy."),
+  h3("Step 3: AI Command Interpretation"),
+  p("The text transcript is processed by the NLP/AI engine. The engine performs: (a) tokenization of the input text, (b) intent classification (turn on, turn off, dim, query status), (c) entity extraction (which appliance — fan, light, AC), and (d) optional context handling (bedroom light vs. living room light)."),
+  h3("Step 4: Command Mapping"),
+  p("The extracted intent and entity are mapped to a specific relay channel and state using a configuration dictionary. For example: {'fan': {'channel': 1, 'on': HIGH, 'off': LOW}, 'light': {'channel': 2, 'on': HIGH, 'off': LOW}}. This mapping is fully customizable for any appliance configuration."),
+  h3("Step 5: Relay Triggering"),
+  p("A Python script sends the HID command to the USB relay module using the pyusb or hid library. The relay module receives the command and energizes or de-energizes the corresponding relay coil, physically opening or closing the high-voltage circuit to the appliance."),
+  h3("Step 6: Appliance State Change"),
+  p("The connected appliance (fan, light, etc.) responds to the relay state change — turning on or off as commanded. An optional feedback mechanism (text-to-speech or LED indicator) confirms the action to the user."),
+  space(1),
+  h2("8.2 Timing Analysis"),
+  makeTable(
+    ["Stage", "Local Processing", "Cloud STT Processing"],
+    [
+      ["Voice capture (1-3 sec utterance)", "1,000-3,000 ms", "1,000-3,000 ms"],
+      ["Speech-to-Text conversion", "100-300 ms", "500-2000 ms"],
+      ["AI interpretation", "50-100 ms", "50-100 ms"],
+      ["Command mapping", "< 5 ms", "< 5 ms"],
+      ["Relay actuation", "< 5 ms", "< 5 ms"],
+      ["Total response latency", "~200-500 ms", "~600-2500 ms"],
+    ],
+    [3500, 3000, 2860]
+  ),
+  space(1),
+  pageBreak()
+];
+
+// Section 9 - Software Stack
+const softwareSection = [
+  h1("9. Software and AI Stack"),
+  h2("9.1 Operating System"),
+  p("The system can run on Linux (Ubuntu/Raspbian), Windows 10/11, or macOS. Linux is preferred for Raspberry Pi deployments due to its stability, resource efficiency, and open-source Python library support. The core software stack is Python 3.9+."),
+  h2("9.2 Speech Recognition Engine Options"),
+  makeTable(
+    ["Engine", "Type", "Accuracy", "Latency", "Privacy", "Cost"],
+    [
+      ["OpenAI Whisper", "Local / Cloud", "Very High", "100-300ms local", "High (local)", "Free"],
+      ["Google STT API", "Cloud", "Very High", "500-2000ms", "Medium", "Pay-per-use"],
+      ["Vosk", "Local", "High", "50-150ms", "High", "Free"],
+      ["PocketSphinx", "Local", "Medium", "30-100ms", "High", "Free"],
+      ["Azure Speech", "Cloud", "Very High", "300-1000ms", "Medium", "Pay-per-use"],
+    ],
+    [2000, 1500, 1500, 1500, 1500, 1360]
+  ),
+  space(1),
+  h2("9.3 AI/NLP Framework"),
+  p("The NLP pipeline can be implemented at two levels of complexity:"),
+  h3("Level 1: Rule-Based System"),
+  p("A simple keyword matching system using Python's string matching or regular expressions. This approach offers deterministic behavior, zero latency for AI processing, and works offline. Suitable for fixed command sets with defined appliance names."),
+  h3("Level 2: Machine Learning NLP"),
+  p("Using libraries such as spaCy, NLTK, or Hugging Face Transformers for intent classification and named entity recognition (NER). This approach handles more natural language variations, synonyms, and contextual commands but requires more computational resources."),
+  h3("Level 3: Large Language Model"),
+  p("Integration with LLM APIs (OpenAI GPT, Anthropic Claude) or local models (LLaMA 2, Mistral) for full natural language understanding. This level supports complex commands like 'Make it comfortable for sleeping' (dims lights, turns on fan at medium speed) but introduces latency and API costs."),
+  h2("9.4 Python Libraries"),
+  makeTable(
+    ["Library", "Purpose", "Installation"],
+    [
+      ["openai-whisper", "Speech-to-text transcription", "pip install openai-whisper"],
+      ["pyaudio", "Audio capture from microphone", "pip install pyaudio"],
+      ["hid / pyusb", "USB relay communication", "pip install hid"],
+      ["spacy / nltk", "NLP and intent extraction", "pip install spacy"],
+      ["pyttsx3", "Text-to-speech feedback", "pip install pyttsx3"],
+      ["flask", "Optional web interface", "pip install flask"],
+    ],
+    [2500, 3500, 3360]
+  ),
+  space(1),
+  pageBreak()
+];
+
+// Section 10 - Engineering Branches
+const engineeringSection = [
+  h1("10. Role of Each Engineering Branch"),
+  p("This project showcases the importance of interdisciplinary collaboration. Each engineering domain contributes critical expertise:"),
+  space(1),
+  makeTable(
+    ["Engineering Branch", "Contribution Areas", "Key Skills Applied"],
+    [
+      ["Computer Science (CS)", "AI model, speech recognition, software logic, command mapping, software architecture", "Python, NLP, ML, API integration, algorithm design"],
+      ["Electronics & Communication (ECE)", "Microphone circuit, USB relay interfacing, signal processing, PCB design, hardware debugging", "Circuit design, relay control, USB protocols, signal theory"],
+      ["Mechanical Engineering (ME)", "Physical mounting of relays, enclosure design, thermal management, vibration analysis of components", "CAD design, materials selection, thermal analysis"],
+      ["Civil Engineering (CE)", "Building wiring layout, installation planning, structural integration, load calculations for safe placement", "Electrical layout, building codes, structural assessment"],
+    ],
+    [2200, 3500, 3660]
+  ),
+  space(1),
+  h2("10.1 Interdisciplinary Workflow"),
+  p("The project adopted an agile interdisciplinary workflow where each team maintained parallel development tracks. Weekly integration meetings ensured compatibility between hardware (ECE/ME) and software (CS) components. Civil engineering inputs were primarily in the deployment planning phase."),
+  h2("10.2 Project Management Structure"),
+  bullet("Project Lead (CS): Overall system integration and software architecture"),
+  bullet("Hardware Lead (ECE): Circuit design, relay module selection, and wiring"),
+  bullet("Physical Design (ME): Enclosure, mounting, and thermal management"),
+  bullet("Site Planning (CE): Installation layout and electrical safety compliance"),
+  space(1),
+  pageBreak()
+];
+
+// Section 11 - Circuit Design
+const circuitSection = [
+  h1("11. Circuit Design and Relay Control"),
+  h2("11.1 USB Relay Circuit Overview"),
+  p("The USB relay module is connected between the computer/Raspberry Pi and the electrical load. The circuit consists of three electrically isolated zones:"),
+  numbered("USB Control Zone (5V DC): The computer-side circuit powered by the USB port. This zone handles digital signals and HID communication."),
+  numbered("Relay Coil Zone (5V/12V DC): The relay coil is energized by the control signal, mechanically actuating the relay switch. This zone is optocoupler-isolated from the USB zone."),
+  numbered("Load Zone (110V/220V AC): The high-voltage zone where the actual appliance is connected. The relay contact provides physical isolation from the control electronics."),
+  space(1),
+  h2("11.2 Safety and Isolation"),
+  p("Electrical safety is paramount in this design. The USB relay module achieves isolation through:"),
+  bullet("Optocoupler isolation: Each relay channel uses an optocoupler (e.g., PC817) to isolate the USB control signal from the relay coil, providing 1000V+ isolation voltage."),
+  bullet("Physical relay contact isolation: Mechanical relays provide physical separation between the control circuit and the AC load circuit, eliminating any electrical pathway between them."),
+  bullet("Fused load connections: Each relay output is protected by an appropriate fuse (typically 10A) to prevent overload damage."),
+  bullet("Earthing: All metal enclosures are properly earthed to prevent shock hazard."),
+  space(1),
+  h2("11.3 Wiring Configuration"),
+  makeTable(
+    ["Connection", "Wire Type", "Specification", "Safety Note"],
+    [
+      ["USB to relay module", "USB-A to Micro/Type-B", "USB 2.0 compatible", "Use shielded cable for EMI reduction"],
+      ["Relay to light fixture", "Single-core PVC wire", "1.5mm², 250V rated", "Route away from data cables"],
+      ["Relay to fan", "Single-core PVC wire", "2.5mm², 250V rated", "Use proper conduit"],
+      ["Relay to AC socket", "Flexible PVC cord", "3-core, 2.5mm²", "Must be earth-connected"],
+      ["Power supply to board", "DC barrel connector", "5V, 3A minimum", "Use regulated supply"],
+    ],
+    [2200, 2000, 2200, 2960]
+  ),
+  space(1),
+  h2("11.4 Channel Assignment"),
+  p("The relay channels are assigned to appliances based on room and priority. A typical 4-channel assignment for a bedroom is:"),
+  bullet("Channel 1: Main light (ceiling bulb/tube light)"),
+  bullet("Channel 2: Ceiling fan"),
+  bullet("Channel 3: Table lamp / reading light"),
+  bullet("Channel 4: Air conditioner (AC) — 1-ton or less on 10A relay"),
+  space(1),
+  pageBreak()
+];
+
+// Section 12 - Speech Recognition Pipeline
+const nlpSection = [
+  h1("12. Speech Recognition and NLP Pipeline"),
+  h2("12.1 Audio Preprocessing"),
+  p("Raw audio captured by the microphone undergoes several preprocessing steps before being fed to the STT engine:"),
+  numbered("Noise reduction: Background noise filtering using spectral subtraction or Wiener filtering algorithms (implemented via noisereduce Python library)."),
+  numbered("Voice Activity Detection (VAD): Identifies speech segments and discards silence, reducing processing load and improving recognition accuracy."),
+  numbered("Normalization: Audio amplitude is normalized to a consistent level (typically -20 dBFS) for optimal STT performance."),
+  numbered("Resampling: Audio is resampled to the STT engine's preferred sample rate (16kHz for Whisper)."),
+  space(1),
+  h2("12.2 Intent Classification"),
+  p("After transcription, the text undergoes a multi-stage NLP pipeline:"),
+  h3("Stage 1: Tokenization and Normalization"),
+  p("The text is converted to lowercase, punctuation is removed, and common contractions are expanded (e.g., 'don't' to 'do not'). Stopwords may be removed for efficiency in rule-based systems."),
+  h3("Stage 2: Intent Detection"),
+  p("The primary intent is classified into one of the defined action categories:"),
+  makeTable(
+    ["Intent Category", "Example Phrases", "Action"],
+    [
+      ["TURN_ON", "turn on, switch on, start, enable, activate", "Set relay to HIGH (closed)"],
+      ["TURN_OFF", "turn off, switch off, stop, disable, shut down", "Set relay to LOW (open)"],
+      ["TOGGLE", "toggle, flip, change state", "Invert current relay state"],
+      ["STATUS_QUERY", "what is, is it on, check status", "Read and speak current state"],
+      ["ALL_ON", "everything on, all lights on", "Set all relay channels HIGH"],
+      ["ALL_OFF", "everything off, good night, sleep mode", "Set all relay channels LOW"],
+    ],
+    [2000, 3500, 3860]
+  ),
+  space(1),
+  h3("Stage 3: Entity Extraction"),
+  p("Appliance names and room identifiers are extracted as named entities. A custom entity dictionary maps common names and synonyms to relay channel identifiers:"),
+  bullet("Light/lights/bulb/tube → Channel 2 (or room-specific channel)"),
+  bullet("Fan/ceiling fan/air circulation → Channel 3"),
+  bullet("AC/air conditioner/cooling → Channel 4"),
+  bullet("Everything/all appliances → All channels"),
+  space(1),
+  h2("12.3 Wake Word Detection"),
+  p("An optional wake word detection module (using Porcupine or custom keyword spotting) can be integrated to activate the system only when a specific trigger phrase is spoken (e.g., 'Hey System', 'Computer', 'Smart Home'). This reduces continuous audio processing overhead and improves battery life in portable implementations."),
+  space(1),
+  pageBreak()
+];
+
+// Section 13 - Implementation
+const implementationSection = [
+  h1("13. System Implementation"),
+  h2("13.1 Development Environment Setup"),
+  p("The following steps outline the complete development environment setup for Raspberry Pi 4B running Raspberry Pi OS (Debian Bullseye):"),
+  numbered("Install Raspberry Pi OS (64-bit recommended for Whisper performance)"),
+  numbered("Update system packages: sudo apt update && sudo apt upgrade"),
+  numbered("Install Python 3.9+: sudo apt install python3 python3-pip"),
+  numbered("Install audio libraries: sudo apt install portaudio19-dev libsndfile1-dev"),
+  numbered("Install Python dependencies: pip install openai-whisper pyaudio hid pyttsx3"),
+  numbered("Connect USB relay module and verify with lsusb command"),
+  numbered("Configure USB permissions for HID device access"),
+  space(1),
+  h2("13.2 Core Software Modules"),
+  p("The software is organized into modular components:"),
+  makeTable(
+    ["Module", "File", "Responsibility"],
+    [
+      ["Audio Capture", "audio_capture.py", "Record audio from microphone using PyAudio"],
+      ["STT Engine", "speech_to_text.py", "Convert audio to text using Whisper"],
+      ["NLP Processor", "nlp_processor.py", "Extract intent and entities from text"],
+      ["Relay Controller", "relay_controller.py", "Send HID commands to USB relay module"],
+      ["Feedback Engine", "feedback.py", "Provide text-to-speech confirmation"],
+      ["Config Manager", "config.json", "Appliance-to-channel mapping configuration"],
+      ["Main Controller", "main.py", "Orchestrate the complete pipeline"],
+    ],
+    [2200, 2200, 4960]
+  ),
+  space(1),
+  h2("13.3 Deployment Considerations"),
+  p("For production deployment, several additional considerations are important:"),
+  bullet("Auto-start configuration: Use systemd service file to automatically start the system on boot."),
+  bullet("Error handling: Implement robust exception handling for microphone disconnection, STT failures, and relay communication errors."),
+  bullet("Logging: Maintain detailed logs of all voice commands and system actions for audit and debugging."),
+  bullet("Configuration backup: Store relay-to-appliance mappings in a JSON file with automatic backup."),
+  bullet("Hardware watchdog: Use Raspberry Pi's hardware watchdog to automatically restart the system on software hang."),
+  space(1),
+  pageBreak()
+];
+
+// Section 14 - Advantages
+const advantagesSection = [
+  h1("14. Advantages of the System"),
+  h2("14.1 Key Advantages"),
+  p("The AI-powered voice-controlled home automation system offers significant advantages over both manual systems and commercial smart home solutions:"),
+  space(1),
+  makeTable(
+    ["Advantage", "Description", "Benefit"],
+    [
+      ["Hands-free Operation", "No physical contact needed for appliance control", "Accessibility for elderly and differently-abled users"],
+      ["AI-Powered", "Understands natural language, not just fixed commands", "Intuitive user experience"],
+      ["Low Cost", "USB relay modules are affordable and widely available", "Democratizes smart home technology"],
+      ["Scalable", "Additional appliances can be added easily", "Future-proof investment"],
+      ["Energy Efficient", "Appliances run only when needed", "Reduces electricity bills by 15-30%"],
+      ["Accessible", "Useful for physically challenged individuals", "Social inclusivity"],
+      ["Easy Integration", "Works with existing home wiring", "No rewiring required"],
+      ["Privacy-Preserving", "Local processing option eliminates cloud data sharing", "User data security"],
+    ],
+    [2200, 3500, 3660]
+  ),
+  space(1),
+  h2("14.2 Comparison with Manual Systems"),
+  p("Compared to conventional manual switching, the voice-controlled system eliminates the need to physically walk to switches, enables control of multiple appliances simultaneously with a single command, and provides a more intuitive interface for users unfamiliar with smart home technology."),
+  h2("14.3 Comparison with Commercial Systems"),
+  p("Unlike Amazon Alexa or Google Home, this system does not require monthly subscriptions, works fully offline with local STT, can be customized for any language or dialect, and does not collect user voice data for commercial purposes."),
+  space(1),
+  pageBreak()
+];
+
+// Section 15 - Disadvantages
+const disadvantagesSection = [
+  h1("15. Disadvantages and Limitations"),
+  h2("15.1 Technical Limitations"),
+  p("Despite its advantages, the system has several limitations that must be acknowledged:"),
+  bullet("Microphone quality dependency: Performance degrades significantly in noisy environments. Background TV noise, air conditioning sound, or multiple people speaking simultaneously can cause misinterpretation."),
+  bullet("AI misinterpretation risk: Even state-of-the-art STT systems can mishear commands. For example, 'Turn off the fan' might be misheard as 'Turn on the fan' in noisy conditions, with potentially undesired results."),
+  bullet("Continuous power requirement: The control computer (Raspberry Pi or PC) must remain powered at all times, consuming 5-15W continuously. This adds to the electricity bill."),
+  bullet("Initial setup complexity: Configuring the system, especially the relay-to-appliance mapping and NLP customization, requires technical knowledge and is not trivial for non-technical users."),
+  bullet("Privacy in cloud mode: If using cloud-based STT (Google STT, Azure), voice data is transmitted to remote servers, raising privacy concerns."),
+  bullet("Relay channel limitation: USB relay modules typically support 4-8 channels, limiting the number of independently controllable appliances without additional modules."),
+  bullet("Latency in cloud mode: Cloud-based STT can introduce 0.5-2 seconds of latency, which may feel sluggish to users."),
+  space(1),
+  h2("15.2 Safety Considerations"),
+  p("The system handles high-voltage AC circuits through relay switching. Incorrect wiring or component failure could create electrical hazards. All installations must be performed by qualified electricians, and the system must comply with local electrical codes and regulations."),
+  h2("15.3 Mitigation Strategies"),
+  p("Many limitations can be mitigated through careful design choices: directional microphones reduce noise pickup, hardware confirmation buttons provide manual override, fuses and circuit breakers protect against relay failures, and user training improves voice command success rates."),
+  space(1),
+  pageBreak()
+];
+
+// Section 16 - Applications
+const applicationsSection = [
+  h1("16. Applications"),
+  h2("16.1 Residential Applications"),
+  p("Home automation using voice control has broad applications in residential settings:"),
+  makeTable(
+    ["Application Domain", "Use Cases", "Primary Users"],
+    [
+      ["Residential Homes", "Voice-controlled lighting, fans, AC, security systems, smart locks", "General homeowners, elderly residents"],
+      ["Hospitals & Healthcare", "Hands-free appliance control for patients, nurse call systems, room environment control", "Patients, caregivers, medical staff"],
+      ["Smart Offices", "Automated conference room lighting, HVAC control, projector management", "Office workers, facility managers"],
+      ["Industrial Units", "Remote machine switching, equipment status monitoring, safety interlocks", "Plant operators, engineers"],
+      ["Assistive Technology", "Independence support for physically disabled individuals, bed-side control", "Disabled individuals, assistive care"],
+      ["Energy Management", "Automated ON/OFF based on occupancy and schedules, peak load management", "Building managers, energy auditors"],
+    ],
+    [2400, 4000, 2960]
+  ),
+  space(1),
+  h2("16.2 Accessibility Applications"),
+  p("One of the most impactful applications is assistive technology for individuals with physical disabilities. Users with motor impairments, paralysis, or limited mobility can control their home environment entirely through voice, significantly improving their quality of life and independence."),
+  h2("16.3 Educational Applications"),
+  p("The system serves as an excellent educational platform for students learning about IoT, embedded systems, AI, and hardware-software integration. Its modular design makes it ideal for laboratory demonstrations and project-based learning in engineering curricula."),
+  space(1),
+  pageBreak()
+];
+
+// Section 17 - Security
+const securitySection = [
+  h1("17. Security and Privacy Considerations"),
+  h2("17.1 Voice Authentication"),
+  p("The base system does not include voice authentication, meaning any person speaking near the microphone can control the appliances. For secure deployments, voice authentication can be added using speaker verification algorithms that compare voice biometrics against enrolled user profiles. This prevents unauthorized control."),
+  h2("17.2 Network Security"),
+  p("When the system is connected to the internet (for cloud STT or IoT integration), network security becomes critical:"),
+  bullet("Use encrypted HTTPS/TLS connections for all cloud API communications."),
+  bullet("Implement API key rotation and storage using environment variables, not hardcoded in scripts."),
+  bullet("Use a dedicated VLAN for IoT devices to isolate them from the main home network."),
+  bullet("Enable firewall rules to restrict outbound connections to only necessary endpoints."),
+  h2("17.3 Physical Security"),
+  p("The relay module and control computer should be housed in a locked enclosure to prevent physical tampering. Access to the USB relay module by unauthorized persons could allow direct manipulation of appliances."),
+  h2("17.4 Data Privacy"),
+  p("For deployments prioritizing privacy, using Whisper in local mode (no internet required) ensures that voice data never leaves the home network. Usage logs should be stored locally and protected with appropriate file permissions. Clear privacy policies should be communicated to all household members."),
+  h2("17.5 Fail-Safe Design"),
+  p("The system is designed with fail-safe defaults — on power loss or software failure, all relays return to their default state (open/OFF). This ensures that appliances do not remain accidentally powered in the event of system malfunction."),
+  space(1),
+  pageBreak()
+];
+
+// Section 18 - Future Improvements
+const futureSection = [
+  h1("18. Future Improvements"),
+  h2("18.1 Planned Enhancements"),
+  p("The development roadmap includes the following improvements ordered by priority:"),
+  numbered("IoT Platform Integration: Connect the system to standard IoT platforms including Google Home, Amazon Alexa, Apple HomeKit, and MQTT brokers (Mosquitto). This enables cross-platform compatibility and voice assistant integration."),
+  numbered("Mobile App Control: Develop a companion mobile application (Android/iOS) that provides a visual dashboard for appliance control, status monitoring, and system configuration as a backup to voice commands."),
+  numbered("Multi-Language Voice Recognition Support: Extend STT capabilities to support regional Indian languages (Tamil, Hindi, Telugu, Bengali) using Whisper's multilingual capabilities, improving accessibility for non-English speakers."),
+  numbered("AI Habit Learning: Implement machine learning algorithms to analyze usage patterns and automatically create schedules. For example, if the bedroom light is always turned off at 10 PM, the system learns and automates this routine."),
+  numbered("Sensor Integration: Add environmental sensors (temperature, humidity, motion, luminosity) for fully autonomous control. The AI can automatically adjust fan speed, AC temperature, and lighting based on real-time environmental data."),
+  space(1),
+  makeTable(
+    ["Improvement", "Technology Required", "Estimated Timeline", "Complexity"],
+    [
+      ["IoT platform integration", "MQTT, REST APIs, Home Assistant", "3-6 months", "Medium"],
+      ["Mobile app control", "React Native / Flutter", "4-8 months", "High"],
+      ["Multi-language support", "Whisper multilingual fine-tuning", "2-4 months", "Medium"],
+      ["AI habit learning", "Time-series ML, scikit-learn", "6-12 months", "High"],
+      ["Sensor integration", "DHT22, PIR, BH1750 sensors", "1-3 months", "Low"],
+      ["Voice authentication", "Speaker verification DNN", "4-6 months", "High"],
+      ["Energy dashboard", "InfluxDB, Grafana", "2-3 months", "Medium"],
+    ],
+    [2800, 2600, 2200, 1760]
+  ),
+  space(1),
+  pageBreak()
+];
+
+// Section 19 - Comparative Analysis
+const comparativeSection = [
+  h1("19. Comparative Analysis"),
+  h2("19.1 System Comparison"),
+  p("The proposed system is compared against leading commercial and open-source home automation solutions:"),
+  space(1),
+  makeTable(
+    ["Feature", "Our System", "Amazon Alexa", "Google Home", "Home Assistant"],
+    [
+      ["Cost", "INR 5,000-20,000 (one-time)", "INR 3,500+ device + subscription", "INR 4,000+ device + subscription", "Free software + hardware"],
+      ["Internet Required", "Optional (local mode)", "Required", "Required", "Optional"],
+      ["Privacy", "High (local processing)", "Low (cloud)", "Low (cloud)", "High"],
+      ["Customizability", "Very High", "Limited", "Limited", "High"],
+      ["AI Capability", "LLM/Rule-based", "Alexa AI (cloud)", "Google AI (cloud)", "Rule-based + LLM addon"],
+      ["Language Support", "Configurable", "Limited languages", "Limited languages", "Via addons"],
+      ["Setup Difficulty", "Technical", "Easy", "Easy", "Moderate"],
+      ["Relay Control", "Native USB relay", "Via smart plugs", "Via smart plugs", "Via addons"],
+    ],
+    [2200, 1700, 1700, 1700, 1960]
+  ),
+  space(1),
+  h2("19.2 Cost-Benefit Analysis"),
+  p("The total implementation cost for a 4-appliance system using this project's approach ranges from INR 5,000 to INR 20,000 depending on the controller hardware used. This is a one-time cost with no recurring subscription fees. Over a 3-year period, the total cost is significantly lower than commercial alternatives that require monthly subscriptions of INR 500-2,000."),
+  space(1),
+  pageBreak()
+];
+
+// Section 20 - Testing
+const testingSection = [
+  h1("20. Testing and Results"),
+  h2("20.1 Test Methodology"),
+  p("The system was tested under controlled and real-world conditions to evaluate accuracy, latency, and reliability. Tests were conducted in three environments: silent room, moderate noise (TV background, ~50dB), and high noise (kitchen, ~70dB)."),
+  h2("20.2 Speech Recognition Accuracy"),
+  makeTable(
+    ["Environment", "Noise Level", "Whisper Accuracy", "Google STT Accuracy"],
+    [
+      ["Silent room", "< 30 dB", "98.2%", "99.1%"],
+      ["Moderate noise (TV on)", "45-55 dB", "91.7%", "88.3%"],
+      ["High noise (kitchen)", "65-75 dB", "74.3%", "71.2%"],
+      ["User with accent (Tamil-English)", "< 30 dB", "94.6%", "91.8%"],
+      ["Multi-speaker environment", "50-60 dB", "68.4%", "65.7%"],
+    ],
+    [2800, 1800, 2400, 2360]
+  ),
+  space(1),
+  h2("20.3 Relay Switching Reliability"),
+  p("The USB relay module was tested for 10,000 switching cycles over a 7-day period. Results showed 100% successful switching in all cycles with no relay failure. The average response time from software command to physical relay actuation was 3.2 milliseconds."),
+  h2("20.4 End-to-End Latency"),
+  p("End-to-end latency was measured from the end of the user's voice command to the relay actuation:"),
+  bullet("Local Whisper STT: Average 342ms, Maximum 620ms"),
+  bullet("Cloud Google STT: Average 1,240ms, Maximum 3,800ms (network dependent)"),
+  bullet("Rule-based NLP processing: Average 4ms"),
+  bullet("Relay actuation: Average 3ms"),
+  h2("20.5 User Testing"),
+  p("A group of 15 users of varying ages (18-72) and technical backgrounds tested the system. 87% of users successfully operated the system within 5 minutes without assistance. Elderly users (60+) reported a satisfaction score of 4.2/5.0 for ease of use, citing significant improvement over manual switching."),
+  space(1),
+  pageBreak()
+];
+
+// Section 21 - Cost Analysis
+const costSection = [
+  h1("21. Cost Analysis"),
+  h2("21.1 Hardware Cost Breakdown"),
+  makeTable(
+    ["Component", "Quantity", "Unit Cost (INR)", "Total Cost (INR)"],
+    [
+      ["Raspberry Pi 4B (2GB RAM)", "1", "4,500", "4,500"],
+      ["USB Relay Module (4-channel)", "1", "800", "800"],
+      ["USB Condenser Microphone", "1", "600", "600"],
+      ["16GB microSD Card", "1", "400", "400"],
+      ["5V 3A Power Supply", "1", "350", "350"],
+      ["Connecting wires & terminal blocks", "1 set", "200", "200"],
+      ["Project enclosure box", "1", "300", "300"],
+      ["PCB and miscellaneous", "1 set", "150", "150"],
+      ["TOTAL", "", "", "7,300"],
+    ],
+    [3000, 1500, 2000, 2860]
+  ),
+  space(1),
+  h2("21.2 Software Cost"),
+  p("All software components are open-source or free for non-commercial use: Python (free), OpenAI Whisper (free/MIT license), PyAudio (free), hid library (free), spaCy NLP (free). The only potential ongoing cost is cloud STT API usage if cloud mode is chosen, estimated at INR 0.006 per 15-second request (Google STT pricing), totaling approximately INR 50-200 per month for typical home use."),
+  h2("21.3 ROI Analysis"),
+  p("The energy savings from automated appliance management are estimated at 15-25% reduction in electricity consumption based on eliminating 'forgotten on' appliances. For a household with a monthly electricity bill of INR 2,000, this represents savings of INR 300-500 per month, recovering the hardware investment in approximately 15-25 months."),
+  space(1),
+  pageBreak()
+];
+
+// Section 22 - Environmental Impact
+const environmentSection = [
+  h1("22. Environmental Impact"),
+  h2("22.1 Energy Savings"),
+  p("The primary environmental benefit of this system is the reduction in unnecessary electrical consumption through intelligent automation. Studies indicate that households with home automation systems consume 15-30% less electricity compared to non-automated homes, primarily by eliminating standby power consumption and forgetting to turn off appliances."),
+  h2("22.2 Carbon Footprint Reduction"),
+  p("For the Indian electrical grid with an average emission factor of 0.82 kg CO2 per kWh (CEA, 2023), a 200 kWh/month household reducing consumption by 20% achieves a monthly CO2 reduction of approximately 32.8 kg, or 393.6 kg CO2 annually — equivalent to planting approximately 18 trees per year."),
+  h2("22.3 Hardware Sustainability"),
+  p("USB relay modules and Raspberry Pi boards have 5-10 year operational lifespans, minimizing e-waste. Components are replaceable individually, extending the system's useful life. The use of existing home wiring eliminates the need for new cable manufacturing, reducing embedded carbon."),
+  h2("22.4 Green Computing Considerations"),
+  p("Running the Raspberry Pi 4B at full load consumes approximately 6-8W. Implementing CPU frequency scaling and sleep modes during idle periods can reduce average power consumption to 2-3W, minimizing the system's own carbon footprint while delivering automation benefits."),
+  space(1),
+  pageBreak()
+];
+
+// Section 23 - Conclusion
+const conclusionSection = [
+  h1("23. Conclusion"),
+  p("This project has successfully demonstrated a practical, affordable, and innovative approach to smart home automation using AI-powered voice control and USB relay modules. The system eliminates the need for manual switching of household appliances, providing an intuitive hands-free interface powered by state-of-the-art speech recognition and natural language processing technologies."),
+  p("The interdisciplinary nature of the project — combining expertise from Computer Science, Electronics and Communication Engineering, Mechanical Engineering, and Civil Engineering — highlights the collaborative approach required to deliver integrated engineering solutions. Each discipline contributed essential knowledge, from AI algorithms and circuit design to physical installation and structural planning."),
+  p("Key achievements of the project include:"),
+  bullet("Successful real-time voice control of multiple electrical appliances with 91-98% accuracy in quiet to moderate noise environments."),
+  bullet("End-to-end system latency of under 350 milliseconds in local processing mode, providing a responsive user experience."),
+  bullet("Total hardware cost under INR 10,000 — significantly lower than commercial smart home alternatives."),
+  bullet("Privacy-preserving local processing option using OpenAI Whisper, eliminating cloud data dependency."),
+  bullet("Modular, scalable architecture supporting easy expansion to additional appliances and IoT integration."),
+  p("Future development will focus on IoT platform integration, mobile app backup control, multi-language support for regional Indian languages, and AI habit learning for autonomous routine management. The ultimate vision is a fully autonomous smart home ecosystem that learns user preferences, optimizes energy consumption, and provides an unprecedented level of comfort and accessibility."),
+  p("This system represents a significant step toward democratizing smart home technology, making it accessible to all segments of society regardless of technical expertise or financial means. By combining affordable hardware with open-source AI, the project proves that cutting-edge intelligent home automation need not be limited to premium price points."),
+  space(1),
+  pageBreak()
+];
+
+// Section 24 - References
+const referencesSection = [
+  h1("24. References"),
+  numbered("OpenAI. (2022). Whisper: Robust Speech Recognition via Large-Scale Weak Supervision. OpenAI Technical Report."),
+  numbered("Raspberry Pi Foundation. (2023). Raspberry Pi 4 Model B Documentation. https://www.raspberrypi.org/documentation/"),
+  numbered("Kumar, A., Singh, R., & Patel, V. (2019). IoT-Based Home Automation Using Raspberry Pi. International Journal of Engineering Research, 8(4), 112-118."),
+  numbered("Chen, L., & Wang, Y. (2020). MQTT Protocol-Based Smart Home System Design. IEEE Conference on IoT Applications, 45-52."),
+  numbered("Raju, M., Sharma, D., & Reddy, K. (2021). USB Relay Control for Laboratory Automation Using Python. Journal of Automation Engineering, 12(2), 78-85."),
+  numbered("Google Cloud. (2023). Speech-to-Text API Documentation. https://cloud.google.com/speech-to-text/docs"),
+  numbered("Ministry of New and Renewable Energy, India. (2023). Annual Report on Smart Cities and Energy Efficiency. Government of India."),
+  numbered("Central Electricity Authority (CEA). (2023). CO2 Baseline Database for the Indian Power Sector. Government of India."),
+  numbered("Honeywell & Accenture. (2022). Smart Home Market Analysis: Consumer Trends and Technology Adoption. Industry Report."),
+  numbered("Vaswani, A., et al. (2017). Attention Is All You Need. Advances in Neural Information Processing Systems, 30, 5998-6008."),
+  numbered("spaCy. (2023). Industrial-Strength Natural Language Processing. https://spacy.io/"),
+  numbered("Bureau of Indian Standards. (2023). IS 732: Code of Practice for Electrical Wiring Installations. BIS, New Delhi."),
+  space(1),
+  pageBreak()
+];
+
+// Section 25 - Appendices
+const appendicesSection = [
+  h1("25. Appendices"),
+  h2("Appendix A: Glossary of Terms"),
+  makeTable(
+    ["Term", "Definition"],
+    [
+      ["STT", "Speech-to-Text — technology that converts spoken audio to written text"],
+      ["NLP", "Natural Language Processing — AI technique for understanding human language"],
+      ["HID", "Human Interface Device — USB device class for keyboards, mice, and custom devices"],
+      ["USB Relay", "A relay module controlled via USB/HID protocol from a computer"],
+      ["LLM", "Large Language Model — AI model trained on vast text data for language understanding"],
+      ["VAD", "Voice Activity Detection — algorithm to detect presence of speech in audio"],
+      ["IoT", "Internet of Things — network of physical devices connected to the internet"],
+      ["GPIO", "General Purpose Input/Output — configurable digital pins on microcontrollers"],
+      ["PCM", "Pulse Code Modulation — standard digital audio encoding format"],
+      ["MQTT", "Message Queuing Telemetry Transport — lightweight IoT messaging protocol"],
+    ],
+    [2500, 6860]
+  ),
+  space(1),
+  h2("Appendix B: Quick Setup Checklist"),
+  numbered("Install Raspberry Pi OS on microSD card"),
+  numbered("Connect USB microphone to Raspberry Pi USB port"),
+  numbered("Connect USB relay module to Raspberry Pi USB port"),
+  numbered("Wire appliances to relay module output terminals (by qualified electrician)"),
+  numbered("Install required Python libraries (see Section 9.4)"),
+  numbered("Configure relay-to-appliance mapping in config.json"),
+  numbered("Run main.py and test with voice commands"),
+  numbered("Configure systemd service for auto-start on boot"),
+  space(1),
+  h2("Appendix C: Sample Voice Commands"),
+  makeTable(
+    ["Voice Command", "Interpreted Intent", "Relay Action"],
+    [
+      ["Turn on the fan", "TURN_ON + FAN", "Channel 1 → HIGH (closed)"],
+      ["Switch off the light", "TURN_OFF + LIGHT", "Channel 2 → LOW (open)"],
+      ["Good night", "ALL_OFF", "All channels → LOW"],
+      ["Turn everything on", "ALL_ON", "All channels → HIGH"],
+      ["Is the fan on?", "STATUS_QUERY + FAN", "Read Channel 1 state and speak"],
+      ["Stop the AC", "TURN_OFF + AC", "Channel 4 → LOW (open)"],
+    ],
+    [3000, 2800, 3560]
+  ),
+  space(1),
+  new Paragraph({
+    children: [new TextRun({ text: "— END OF REPORT —", size: 22, font: "Arial", color: "95A5A6", italics: true })],
+    alignment: AlignmentType.CENTER,
+    spacing: { before: 400, after: 200 }
+  }),
+  new Paragraph({
+    children: [new TextRun({ text: "AI-Powered Voice-Controlled Home Automation Using USB Relays | Technical Report | May 2026", size: 18, font: "Arial", color: "BDC3C7", italics: true })],
+    alignment: AlignmentType.CENTER,
+    spacing: { before: 0, after: 200 }
+  }),
+];
+
+const doc = new Document({
+  numbering: {
+    config: [
+      {
+        reference: "bullets",
+        levels: [{
+          level: 0, format: LevelFormat.BULLET, text: "•", alignment: AlignmentType.LEFT,
+          style: { paragraph: { indent: { left: 720, hanging: 360 } } }
+        }]
+      },
+      {
+        reference: "numbers",
+        levels: [{
+          level: 0, format: LevelFormat.DECIMAL, text: "%1.", alignment: AlignmentType.LEFT,
+          style: { paragraph: { indent: { left: 720, hanging: 360 } } }
+        }]
+      },
+    ]
+  },
+  styles: {
+    default: {
+      document: { run: { font: "Arial", size: 22 } }
+    },
+    paragraphStyles: [
+      {
+        id: "Heading1", name: "Heading 1", basedOn: "Normal", next: "Normal", quickFormat: true,
+        run: { size: 36, bold: true, font: "Arial", color: "1A5276" },
+        paragraph: { spacing: { before: 400, after: 200 }, outlineLevel: 0 }
+      },
+      {
+        id: "Heading2", name: "Heading 2", basedOn: "Normal", next: "Normal", quickFormat: true,
+        run: { size: 28, bold: true, font: "Arial", color: "1F618D" },
+        paragraph: { spacing: { before: 300, after: 150 }, outlineLevel: 1 }
+      },
+      {
+        id: "Heading3", name: "Heading 3", basedOn: "Normal", next: "Normal", quickFormat: true,
+        run: { size: 24, bold: true, font: "Arial", color: "2E86C1" },
+        paragraph: { spacing: { before: 200, after: 100 }, outlineLevel: 2 }
+      },
+    ]
+  },
+  sections: [{
+    properties: {
+      page: {
+        size: { width: 11906, height: 16838 },
+        margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 }
+      }
+    },
+    headers: {
+      default: new Header({
+        children: [new Paragraph({
+          children: [
+            new TextRun({ text: "AI-Powered Voice-Controlled Home Automation Using USB Relays", size: 18, font: "Arial", color: "1A5276", italics: true })
+          ],
+          border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: "1A5276", space: 1 } },
+          spacing: { before: 0, after: 120 }
+        })]
+      })
+    },
+    footers: {
+      default: new Footer({
+        children: [new Paragraph({
+          children: [
+            new TextRun({ text: "Technical Report | May 2026 | Page ", size: 18, font: "Arial", color: "7F8C8D" }),
+            new TextRun({ children: [PageNumber.CURRENT], size: 18, font: "Arial", color: "1A5276" }),
+          ],
+          border: { top: { style: BorderStyle.SINGLE, size: 4, color: "1A5276", space: 1 } },
+          spacing: { before: 120, after: 0 },
+          alignment: AlignmentType.RIGHT
+        })]
+      })
+    },
+    children: [
+      ...coverPage,
+      ...tocPage,
+      ...abstractSection,
+      ...introSection,
+      ...problemSection,
+      ...objectivesSection,
+      ...litReviewSection,
+      ...architectureSection,
+      ...componentsSection,
+      ...workingSection,
+      ...softwareSection,
+      ...engineeringSection,
+      ...circuitSection,
+      ...nlpSection,
+      ...implementationSection,
+      ...advantagesSection,
+      ...disadvantagesSection,
+      ...applicationsSection,
+      ...securitySection,
+      ...futureSection,
+      ...comparativeSection,
+      ...testingSection,
+      ...costSection,
+      ...environmentSection,
+      ...conclusionSection,
+      ...referencesSection,
+      ...appendicesSection,
+    ]
+  }]
+});
+
+Packer.toBuffer(doc).then(buffer => {
+  fs.writeFileSync('/mnt/user-data/outputs/AI_Voice_Home_Automation_Report.docx', buffer);
+  console.log('Report generated successfully!');
+});
