@@ -1,0 +1,29 @@
+import hashlib
+
+# byte objects :  a bytes object is an immutable sequence of single bytes (integers ranging from 0 to 255). While standard strings (str) hold human-readable Unicode characters, bytes objects hold raw machine data used for storage and transmission.
+byte_obj = "hello world".encode("utf-8") # takes python string and return byte object eg. b'hello world'; remember when
+
+Python 3.13.9 (tags/v3.13.9:8183fa5, Oct 14 2025, 14:09:13) [MSC v.1944 64 bit (AMD64)] on win32
+Enter "help" below or click "Help" above for more information.
+import hashlib
+print(hashlib.sha1("hello world"))
+Traceback (most recent call last):
+  File "<pyshell#2>", line 1, in <module>
+    print(hashlib.sha1("hello world"))
+TypeError: Strings must be encoded before hashing
+print(hashlib.sha1("hello world".encode()))
+<sha1 _hashlib.HASH object @ 0x000002862D1661D0>
+print(hashlib.sha1("hello world".encode()).hexdigest())
+2aae6c35c94fcfb415dbe95f408b9ce91ee846ed
+print(str(hashlib.sha1("hello world".encode()).hexdigest()).len())
+Traceback (most recent call last):
+  File "<pyshell#6>", line 1, in <module>
+    print(str(hashlib.sha1("hello world".encode()).hexdigest()).len())
+AttributeError: 'str' object has no attribute 'len'
+print(len(str(hashlib.sha1("hello world".encode()).hexdigest())))
+40
+"hi".encode('utf-8')
+b'hi'
+"hi here 😍".encode('utf-8')
+b'hi here \xf0\x9f\x98\x8d'
+A SHA-1 hash has a fixed length of 160 bits, which equals 20 bytes. When written out for humans to read, it is normally shown as a 40-character text string using base-16 numbers (hexadecimal digits from 0-9 and a-f).
