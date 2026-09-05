@@ -1,0 +1,279 @@
+Yes. You can execute this Hadoop MapReduce program from the Ubuntu terminal as follows.
+
+ ## 1\. Save the Java program
+
+ Open Terminal and create the file:
+
+```
+mkdir -p ~/wordcount
+cd ~/wordcount
+
+nano WordCount.java
+```
+
+ Paste your complete Java code into the file, then save:
+
+ - `Ctrl + O`
+- Enter
+- `Ctrl + X`
+
+ Your file should be named exactly:
+
+```
+WordCount.java
+```
+
+ ## 2\. Check Hadoop is running
+
+ If you are using Hadoop in pseudo-distributed mode, start HDFS and YARN:
+
+```
+start-dfs.sh
+start-yarn.sh
+```
+
+ Check the Java/Hadoop processes:
+
+```
+jps
+```
+
+ You should normally see processes such as:
+
+```
+NameNode
+DataNode
+ResourceManager
+NodeManager
+SecondaryNameNode
+```
+
+ You can also check:
+
+```
+hdfs dfs -ls /
+```
+
+ If this command works, HDFS is available.
+
+ ## 3\. Create an input file
+
+ Create a local text file:
+
+```
+nano input.txt
+```
+
+ For example, enter:
+
+```
+Hello Hadoop
+Hello World
+Hadoop is powerful
+Word Count using Hadoop
+```
+
+ Save it with `Ctrl + O`, Enter, then `Ctrl + X`.
+
+ Check it:
+
+```
+cat input.txt
+```
+
+ ## 4\. Put the input file into HDFS
+
+ Create an HDFS input directory:
+
+```
+hdfs dfs -mkdir -p /user/$USER/wordcount/input
+```
+
+ Upload the file:
+
+```
+hdfs dfs -put input.txt /user/$USER/wordcount/input/
+```
+
+ Verify:
+
+```
+hdfs dfs -ls /user/$USER/wordcount/input
+```
+
+ You should see:
+
+```
+input.txt
+```
+
+ ## 5\. Compile the Java program
+
+ First find your Hadoop installation:
+
+```
+which hadoop
+```
+
+ Then compile:
+
+```
+mkdir -p classes
+
+javac -classpath "$(hadoop classpath)" -d classes WordCount.java
+```
+
+ If there are no errors, create the JAR:
+
+```
+jar -cvf wordcount.jar -C classes .
+```
+
+ Check:
+
+```
+ls
+```
+
+ You should have something like:
+
+```
+WordCount.java
+input.txt
+classes/
+wordcount.jar
+```
+
+ ## 6\. Run the MapReduce program
+
+ Run:
+
+```
+hadoop jar wordcount.jar WordCount /user/$USER/wordcount/input /user/$USER/wordcount/output
+```
+
+ The two arguments correspond to:
+
+```
+WordCount <input-directory> <output-directory>
+```
+
+ So your Java code:
+
+```
+FileInputFormat.addInputPath(job, new Path(args[0]));
+FileOutputFormat.setOutputPath(job, new Path(args[1]));
+```
+
+ receives:
+
+```
+args[0] = /user/$USER/wordcount/input
+args[1] = /user/$USER/wordcount/output
+```
+
+ ## 7\. View the output
+
+ After the job finishes successfully:
+
+```
+hdfs dfs -ls /user/$USER/wordcount/output
+```
+
+ You will normally see:
+
+```
+_SUCCESS
+part-r-00000
+```
+
+ Display the result:
+
+```
+hdfs dfs -cat /user/$USER/wordcount/output/part-r-00000
+```
+
+ For the sample input, the output will be approximately:
+
+```
+count    1
+hadoop   3
+hello    2
+is       1
+powerful 1
+using    1
+word     1
+world    1
+```
+
+ The exact counts depend on your input.
+
+ ## 8\. Important: output directory already exists
+
+ If you run the program again with the same output directory, Hadoop will usually give an error such as:
+
+```
+Output directory ... already exists
+```
+
+ Delete the old output first:
+
+```
+hdfs dfs -rm -r /user/$USER/wordcount/output
+```
+
+ Then run again:
+
+```
+hadoop jar wordcount.jar WordCount /user/$USER/wordcount/input /user/$USER/wordcount/output
+```
+
+ ## Complete command sequence
+
+ If Hadoop is already installed and configured, you can essentially do:
+
+```
+cd ~/wordcount
+
+mkdir -p classes
+
+javac -classpath "$(hadoop classpath)" -d classes WordCount.java
+
+jar -cvf wordcount.jar -C classes .
+
+hdfs dfs -mkdir -p /user/$USER/wordcount/input
+
+hdfs dfs -put -f input.txt /user/$USER/wordcount/input/
+
+hdfs dfs -rm -r -f /user/$USER/wordcount/output
+
+hadoop jar wordcount.jar WordCount \
+    /user/$USER/wordcount/input \
+    /user/$USER/wordcount/output
+
+hdfs dfs -cat /user/$USER/wordcount/output/part-r-00000
+```
+
+ ### One thing to watch for
+
+ Your code uses:
+
+```
+word.set(itr.nextToken().toLowerCase().replaceAll("[^a-zA-Z]", ""));
+```
+
+ So punctuation is removed and words are converted to lowercase. For example:
+
+```
+Hadoop!
+HADOOP
+hadoop.
+```
+
+ will all be counted as:
+
+```
+hadoop
+```
+
+ If you get an error while compiling or running it, **paste the exact terminal error here** and I can tell you the specific command to fix it.
