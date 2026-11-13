@@ -1,0 +1,9 @@
+open VMware player
+open metasploitable2 (it's intentionally vulnarable vm; so that we can attack on it using kali linux)
+login and password using : msfadmin
+preses ctrl + alt to get back cursor
+
+now open kali linux in vmware
+login + password : kali
+
+open burpsuite in kali linux : Burp Suite is a web application security testing tool used by ethical hackers and penetration testers to find vulnerabilities in websites and web applications.
