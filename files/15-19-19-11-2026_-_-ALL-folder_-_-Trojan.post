@@ -1,0 +1,94 @@
+Experiment: Detection of Trojan Horse in a System
+
+1. Aim
+
+To detect the presence of Trojan Horse malware in a Windows system using security tools and identify suspicious activities.
+
+2. Requirements
+
+1. Windows 10/11 computer.
+2. Microsoft Defender Antivirus.
+3. Windows Task Manager.
+4. Command Prompt (CMD).
+5. Internet connection.
+6. VirusTotal (for file reputation checking).
+
+3. Theory
+
+A Trojan Horse is a type of malware that disguises itself as legitimate software to trick users into installing or executing it. It can steal sensitive information, provide unauthorized access to attackers, and download additional malware.
+
+Trojan Horses can be detected by checking suspicious files, running processes, network connections, and startup programs.
+
+Microsoft Defender and other security tools help identify and remove malicious files.
+
+4. Procedure
+
+Step 1: Scan using Microsoft Defender
+
+1. Open Windows Security.
+2. Click on Virus & Threat Protection.
+3. Select Scan Options.
+4. Choose Full Scan.
+5. Click Scan Now.
+6. Wait until the scan is completed.
+7. Check the scan results and Protection History.
+
+Step 2: Check running processes
+
+1. Press Ctrl + Shift + Esc to open Task Manager.
+2. Select the Processes tab.
+3. Check running applications and background processes.
+4. Identify unfamiliar or suspicious processes.
+5. Right-click a process and select Open File Location.
+6. Verify its publisher, file location and digital signature.
+
+Step 3: Check network connections
+
+1. Open Command Prompt (CMD).
+2. Type the following command:
+
+"netstat -ano"
+
+3. Press Enter.
+4. Observe active network connections, IP addresses, ports and process IDs.
+5. Type:
+
+"tasklist"
+
+6. Match the PID with the corresponding process name.
+
+Step 4: Check startup programs
+
+1. Open Microsoft Sysinternals Autoruns.
+2. Select the Everything and Logon tabs.
+3. Observe startup entries.
+4. Check unknown publishers, unexpected file paths and unsigned files.
+5. Verify suspicious entries using Microsoft Defender.
+
+Step 5: Check file reputation
+
+1. Open https://www.virustotal.com/
+2. Select an instructor-approved harmless test file.
+3. Upload it only if permitted.
+4. Check the antivirus detection results.
+5. Record the number of security engines that detected the file.
+
+Step 6: Verify antivirus detection
+
+1. Use the official EICAR test file under instructor supervision.
+2. Keep Microsoft Defender enabled.
+3. Observe whether the antivirus detects the test file.
+4. Check Windows Security → Protection History.
+5. Record the detection result.
+
+5. Result
+
+The Windows system was examined using Microsoft Defender, Task Manager, Command Prompt, Autoruns and VirusTotal to identify possible Trojan-related suspicious activities. The scan results and observations were recorded successfully.
+
+6. Precautions
+
+1. Do not download or execute real Trojan malware.
+2. Do not disable antivirus protection.
+3. Do not delete unknown processes without verification.
+4. Use only authorized systems for testing.
+5. Do not upload confidential files to VirusTotal.
